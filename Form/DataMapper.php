@@ -4,9 +4,7 @@
  * Date: 17/5/16
  * Time: 20:58
  */
-
 namespace Simettric\DoctrineTranslatableFormBundle\Form;
-
 
 use Doctrine\ORM\EntityManager;
 use Simettric\DoctrineTranslatableFormBundle\Interfaces\TranslatableFieldInterface;
@@ -16,52 +14,43 @@ use Gedmo\Translatable\Entity\Repository\TranslationRepository;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\Exception;
 
-class DataMapper implements DataMapperInterface{
-
-
+class DataMapper implements DataMapperInterface
+{
     /**
      * @var EntityManager
      */
     private $em;
-
     /**
      * @var TranslationRepository
      */
     private $repository;
-
     /**
      * @var FormBuilderInterface
      */
     private $builder;
-
-    private $translations=[];
-
-
-    private $locales=[];
-
+    private $translations = [];
+    private $locales = [];
     private $required_locale;
+    private $property_names = [];
 
-    private $property_names=[];
-
-
-
-
-    public function __construct(EntityManager $entityManager){
-
-        $this->em = $entityManager;
+    public function __construct(EntityManager $entityManager)
+    {
+        $this->em         = $entityManager;
         $this->repository = $this->em->getRepository('Gedmo\Translatable\Entity\Translation');
-
     }
 
-    public function setBuilder(FormBuilderInterface $builderInterface){
+    public function setBuilder(FormBuilderInterface $builderInterface)
+    {
         $this->builder = $builderInterface;
     }
 
-    public function setRequiredLocale($locale){
+    public function setRequiredLocale($locale)
+    {
         $this->required_locale = $locale;
     }
 
-    public function setLocales(array $locales){
+    public function setLocales(array $locales)
+    {
         $this->locales = $locales;
     }
 
@@ -70,140 +59,114 @@ class DataMapper implements DataMapperInterface{
         return $this->locales;
     }
 
-    public function getTranslations($entity){
-
-        if(!count($this->translations)){
+    public function getTranslations($entity)
+    {
+        if (!count($this->translations))
+        {
             $this->translations = $this->repository->findTranslations($entity);
         }
-
         return $this->translations;
-
     }
 
-
     /**
-     * @param $name
-     * @param $type
+     * @param       $name
+     * @param       $type
      * @param array $options
      * @return DataMapper
      * @throws \Exception
      */
-    public function add($name, $type, $options=[])
+    public function add($name, $type, $options = [])
     {
-
         $this->property_names[] = $name;
-
-        $field = $this->builder
+        $field                  = $this->builder
             ->add($name, $type)
             ->get($name);
-
-        if(!$field->getType()->getInnerType() instanceof TranslatableFieldInterface)
+        if (!$field->getType()->getInnerType() instanceof TranslatableFieldInterface)
             throw new \Exception("{$name} must implement TranslatableFieldInterface");
-
-        foreach($this->locales as $iso){
-
+        foreach ($this->locales as $iso)
+        {
             $options = [
-                "label"   => $iso,
-                "required"=> $iso == $this->required_locale
+                "label"    => $iso,
+                "required" => $iso == $this->required_locale
             ];
-
             $field->add($iso, get_class($field->getType()->getParent()->getInnerType()), $options);
-
         }
-
         return $this;
-
     }
-
 
     /**
      * Maps properties of some data to a list of forms.
-     *
-     * @param mixed $data Structured data.
+     * @param mixed           $data  Structured data.
      * @param FormInterface[] $forms A list of {@link FormInterface} instances.
-     *
      * @throws Exception\UnexpectedTypeException if the type of the data parameter is not supported.
      */
     public function mapDataToForms($data, $forms)
     {
-
-        foreach($forms as $form){
-
+        if ($data === null)
+        {
+            return;
+        }
+        foreach ($forms as $form)
+        {
             $translations = $this->getTranslations($data);
-
-            if(false !== in_array($form->getName(), $this->property_names)) {
-
+            if (false !== in_array($form->getName(), $this->property_names))
+            {
                 $values = [];
-                foreach($this->getLocales() as $iso){
-
-                    if(isset($translations[$iso])){
-                        $values[$iso] =  $translations[$iso][$form->getName()];
+                foreach ($this->getLocales() as $iso)
+                {
+                    if (isset($translations[$iso]))
+                    {
+                        $values[$iso] = $translations[$iso][$form->getName()];
                     }
-
                 }
                 $form->setData($values);
-
-            }else{
-
-                if (false === $form->getConfig()->getOption("mapped")) {
+            }
+            else
+            {
+                if (false === $form->getConfig()->getOption("mapped") || null === $form->getConfig()->getOption("mapped"))
+                {
                     continue;
                 }
-
                 $accessor = PropertyAccess::createPropertyAccessor();
                 $form->setData($accessor->getValue($data, $form->getName()));
-
             }
-
         }
-
     }
 
     /**
      * Maps the data of a list of forms into the properties of some data.
-     *
      * @param FormInterface[] $forms A list of {@link FormInterface} instances.
-     * @param mixed $data Structured data.
-     *
+     * @param mixed           $data  Structured data.
      * @throws Exception\UnexpectedTypeException if the type of the data parameter is not supported.
      */
     public function mapFormsToData($forms, &$data)
     {
-
-
         /**
          * @var $form FormInterface
          */
-        foreach ($forms as $form) {
-
-
+        foreach ($forms as $form)
+        {
             $entityInstance = $data;
-
-
-            if(false !== in_array($form->getName(), $this->property_names)) {
-
-
+            if (false !== in_array($form->getName(), $this->property_names))
+            {
                 $translations = $form->getData();
-                foreach($this->getLocales() as $iso) {
-                    if(isset($translations[$iso])){
-                        $this->repository->translate($entityInstance, $form->getName(), $iso, $translations[$iso] );
+                foreach ($this->getLocales() as $iso)
+                {
+                    if (isset($translations[$iso]))
+                    {
+                        $this->repository->translate($entityInstance, $form->getName(), $iso, $translations[$iso]);
                     }
                 }
-
-
-            }else{
-
-                if(false === $form->getConfig()->getOption("mapped") || null === $form->getConfig()->getOption("mapped")){
+            }
+            else
+            {
+                if (false === $form->getConfig()->getOption("mapped") || null === $form->getConfig()->getOption("mapped"))
+                {
                     continue;
                 }
-
                 $accessor = PropertyAccess::createPropertyAccessor();
                 $accessor->setValue($entityInstance, $form->getName(), $form->getData());
-
             }
-
         }
-
     }
-
-
 }
