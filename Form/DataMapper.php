@@ -79,7 +79,7 @@ class DataMapper implements DataMapperInterface
     {
         $this->property_names[] = $name;
         $field                  = $this->builder
-            ->add($name, $type)
+            ->add($name, $type, $options)
             ->get($name);
         if (!$field->getType()->getInnerType() instanceof TranslatableFieldInterface)
             throw new \Exception("{$name} must implement TranslatableFieldInterface");
@@ -87,7 +87,7 @@ class DataMapper implements DataMapperInterface
         {
             $options = [
                 "label"    => $iso,
-                "required" => $iso == $this->required_locale
+                "required" => isset($options['required']) ? $options['required'] : (isset($options['required_locale']) ? $options['required_locale'][$iso] : ($iso == $this->required_locale))
             ];
             $field->add($iso, get_class($field->getType()->getParent()->getInnerType()), $options);
         }
@@ -116,7 +116,7 @@ class DataMapper implements DataMapperInterface
                 {
                     if (isset($translations[$iso]))
                     {
-                        $values[$iso] = $translations[$iso][$form->getName()];
+                        $values[$iso] = (isset($translations[$iso][$form->getName()]) ? $translations[$iso][$form->getName()] : '');
                     }
                 }
                 $form->setData($values);
