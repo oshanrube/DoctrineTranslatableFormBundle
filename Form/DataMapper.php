@@ -36,8 +36,7 @@ class DataMapper implements DataMapperInterface
     public function __construct(EntityManager $entityManager)
     {
         $this->em         = $entityManager;
-        $metadata            = $entityManager->getClassMetadata('Gedmo\Translatable\Entity\Translation');
-        $this->repository = new \Simettric\DoctrineTranslatableFormBundle\Repository\TranslationRepository($entityManager, $metadata);
+        $this->repository = $this->em->getRepository('Gedmo\Translatable\Entity\Translation');
     }
 
     public function setBuilder(FormBuilderInterface $builderInterface)

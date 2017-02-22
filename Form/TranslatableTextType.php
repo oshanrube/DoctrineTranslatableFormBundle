@@ -15,14 +15,12 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class TranslatableTextType extends AbstractType
-    implements TranslatableFieldInterface{
-
-
-
+    implements TranslatableFieldInterface
+{
     public function configureOptions(OptionsResolver $resolver)
     {
         $resolver->setDefaults([
-            "compound"        => true,
+            "compound" => true,
         ]);
         $resolver->setRequired(["compound"]);
         $resolver->setAllowedValues("compound", true);
@@ -33,6 +31,4 @@ class TranslatableTextType extends AbstractType
     {
         return TextType::class;
     }
-
-
 }
